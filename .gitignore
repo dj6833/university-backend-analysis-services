@@ -1,0 +1,21 @@
+# Virtual Environment (Crucial - do not commit this!)
+.venv/
+venv/
+ENV/
+env/
+
+# Python caching mechanisms (compiled bytecode)
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables and private secrets
+.env
+.env.local
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# VS Code specific settings you don't need to share
+.vscode/
