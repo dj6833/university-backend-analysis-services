@@ -6,11 +6,6 @@ from pydantic import BaseModel
 
 # Load variables from .env into os.environ
 load_dotenv()
-#print(load_dotenv()) 
-
-# Access them safely
-#db_url = os.getenv("RECOMMEND_ENROLLMENTS_USERNAME")
-#secret_key = os.getenv("RECOMMEND_ENROLLMENTS_PASSWORD")
 
 app = FastAPI()
 
@@ -24,13 +19,12 @@ class RecommendationRequest(BaseModel):
 async def get_test_recommendation(data: RecommendationRequest):
     # This is a test response to prove the connection works
     # todo: replace temporary user & pwd approach with JWT or similar if not using a private network across hosting platforms
-    reqUser = os.getenv("RECOMMEND_ENROLLMENTS_USERNAME")
-    reqPwd = os.getenv("RECOMMEND_ENROLLMENTS_PASSWORD")
+    reqUser = os.getenv("RECOMMEND_ENROLLMENTS_API_USERNAME")
+    reqPwd = os.getenv("RECOMMEND_ENROLLMENTS_API_PASSWORD")
     if reqUser == None or reqPwd == None:
         return {
                 "status": "fail",
-                "message": "Internal error: Unable to validate credentials",
-                "reqUser": reqUser
+                "message": "Internal error: Unable to validate credentials"
         } 
 
     if data.api_username != reqUser or data.api_password != reqPwd :
@@ -42,7 +36,5 @@ async def get_test_recommendation(data: RecommendationRequest):
     return {
         "status": "success",
         "message": f"Hello from Python! Engine processed data for student: {data.student_id}",
-        "recommended_courses": ["Python-101", "Data-Science-202"],
-        "user": data.api_username,
-        "pwd": data.api_password
+        "recommended_courses": ["Python-101", "Data-Science-202"]
     }
