@@ -4,7 +4,6 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from sqlalchemy import create_engine, text
 
-
 # Load variables from .env into os.environ
 load_dotenv()
 
@@ -14,7 +13,6 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if DATABASE_URL == None:
     raise Exception("Missing database connectionstring")
 
-# DATABASE_URL = "postgresql://neondb_owner:npg_XcdAFq9mOg0B@ep-aged-credit-ab5fjad4-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 # Create the database connection engine
 engine = create_engine(DATABASE_URL)
 
@@ -43,13 +41,12 @@ async def get_live_recommendation(data: RecommendationRequest):
     }   
     
     # Fetch enrollment data live from your PostgreSQL database
-    # (Note: Update 'enrollments', 'student_id', and 'class_id' to match your actual column names)
     query = text("""
         SELECT student_id, class_id 
         FROM enrollments;
     """)
     
-    # 3. Structure the data exactly how our algorithm expects it
+    # Structure the data exactly how our algorithm expects it
     mock_enrollments = {}
     
     with engine.connect() as connection:
@@ -62,28 +59,67 @@ async def get_live_recommendation(data: RecommendationRequest):
                 mock_enrollments[student] = []
             mock_enrollments[student].append(course)
 
-    # 4. Run the recommendation algorithm logic
+    '''
+    Run the recommendation algorithm logic
+    First, Python looks up the logged-in student (e.g., student_1) and extracts a unique 
+    list of classes they have already joined. We convert this list into a Python set()
+    '''
     target_classes = set(mock_enrollments.get(target_student_id, []))
     peer_class_counts = {}
-    
+    '''
+    Loop through every other student in the database.
+    For each peer, it turns their classes into a set as well.
+    Then, it checks for an overlap using intersection():
+    '''
     for student_id, classes in mock_enrollments.items():
         if student_id == target_student_id:
             continue
             
         peer_classes = set(classes)
-        
+        '''
+        This is a mathematical check.
+        If the target student and the peer share at least one class in common, this returns True.
+        If they share zero classes, Python ignores this peer and skips to the next one.
+        This filters out noise from unrelated departments.
+        '''
         if target_classes.intersection(peer_classes):
+            '''
+            Once Python finds a peer who shares a class, it needs to know:
+               "What else is this peer taking that our target student hasn't discovered yet?"
+            The minus sign (-) in Python sets performs a set difference.
+            It takes the peer's classes and completely subtracts the target student's classes.
+            '''
             recommendations = peer_classes - target_classes
+            '''
+            Python loops through these newly discovered candidate classes and logs them into a tally dictionary of 1..n
+            '''
             for course in recommendations:
                 peer_class_counts[course] = peer_class_counts.get(course, 0) + 1
                 
-    sorted_recommendations = sorted(peer_class_counts.items(), key=lambda x: x[1], reverse=True)
-    final_suggestions = [course for course, count in sorted_recommendations]
+    # Calculate percentage scores
+    final_suggestions = []
+
+    if peer_class_counts:
+        # Sort recommendations by the highest count first
+        sorted_recommendations = sorted(peer_class_counts.items(), key=lambda x: x[1], reverse=True)
+    	
+        # Identify the highest vote count to use as our 100% baseline
+        highest_count = sorted_recommendations[0][1]
+        
+        # Calculate relative percentages for each course
+        for course, count in sorted_recommendations:
+            # Formula: (current_count / highest_count) * 100 {round() keeps the decimal clean for the frontend UI}
+            percentage_score = round((count / highest_count) * 100)
+            
+            final_suggestions.append({
+                "course_id": course,
+                "match_strength": f"{percentage_score}%"
+            })
     
-    # 5. Return the real results back to Node
+    # Return the enriched results
     return {
         "status": "success",
         "processed_student": target_student_id,
-        "current_enrollments": list(target_classes),
+        # "current_enrollments": list(target_classes),  << currently not required by frontend
         "recommended_courses": final_suggestions
     }
