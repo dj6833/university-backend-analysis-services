@@ -21,10 +21,15 @@ class RecommendationRequest(BaseModel):
     api_username: str
     api_password: str
     student_id: str
+    max_records: int
 
 @app.post("/recommendations")
 async def get_live_recommendation(data: RecommendationRequest):
     target_student_id = data.student_id
+    req_max_records = data.max_records
+
+    max_records = int(req_max_records) if (req_max_records and req_max_records > 0) else 10
+    
 	# todo: replace temporary user & pwd approach with JWT or similar if not using a private network across hosting platforms
     reqUser = os.getenv("RECOMMEND_ENROLLMENTS_API_USERNAME")
     reqPwd = os.getenv("RECOMMEND_ENROLLMENTS_API_PASSWORD")
@@ -53,11 +58,11 @@ async def get_live_recommendation(data: RecommendationRequest):
         result = connection.execute(query)
         for row in result:
             student = str(row.student_id)
-            course = str(row.class_id)
+            classID = str(row.class_id)
             
             if student not in mock_enrollments:
                 mock_enrollments[student] = []
-            mock_enrollments[student].append(course)
+            mock_enrollments[student].append(classID)
 
     '''
     Run the recommendation algorithm logic
@@ -93,27 +98,30 @@ async def get_live_recommendation(data: RecommendationRequest):
             '''
             Python loops through these newly discovered candidate classes and logs them into a tally dictionary of 1..n
             '''
-            for course in recommendations:
-                peer_class_counts[course] = peer_class_counts.get(course, 0) + 1
+            for classID in recommendations:
+                peer_class_counts[classID] = peer_class_counts.get(classID, 0) + 1
                 
     # Calculate percentage scores
     final_suggestions = []
 
     if peer_class_counts:
         # Sort recommendations by the highest count first
-        sorted_recommendations = sorted(peer_class_counts.items(), key=lambda x: x[1], reverse=True)
+        all_sorted_recommendations = sorted(peer_class_counts.items(), key=lambda x: x[1], reverse=True)
     	
         # Identify the highest vote count to use as our 100% baseline
-        highest_count = sorted_recommendations[0][1]
+        highest_count = all_sorted_recommendations[0][1]
+
+        topN_sorted_recommendations = all_sorted_recommendations[:max_records]
         
-        # Calculate relative percentages for each course
-        for course, count in sorted_recommendations:
+        # Calculate relative percentages for each class
+        for classID, count in topN_sorted_recommendations:
             # Formula: (current_count / highest_count) * 100 {round() keeps the decimal clean for the frontend UI}
             percentage_score = round((count / highest_count) * 100)
             
             final_suggestions.append({
-                "course_id": course,
-                "match_strength": f"{percentage_score}%"
+                "classId": classID,
+                # "match_strength": f"{percentage_score}%"
+                "match_strength": percentage_score
             })
     
     # Return the enriched results
@@ -121,5 +129,5 @@ async def get_live_recommendation(data: RecommendationRequest):
         "status": "success",
         "processed_student": target_student_id,
         # "current_enrollments": list(target_classes),  << currently not required by frontend
-        "recommended_courses": final_suggestions
+        "recommended_classes": final_suggestions
     }
