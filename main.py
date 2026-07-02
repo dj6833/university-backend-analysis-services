@@ -117,8 +117,6 @@ async def get_live_recommendation(data: RecommendationRequest):
         for classID, count in topN_sorted_recommendations:
             # Formula: (current_count / highest_count) * 100 {round() keeps the decimal clean for the frontend UI}
             percentage_score = round((count / highest_count) * 100)
-            #to test staging deployment always make score 1%
-            percentage_score = 1
             
             final_suggestions.append({
                 "classId": classID,
