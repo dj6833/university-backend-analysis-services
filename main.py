@@ -23,6 +23,10 @@ class RecommendationRequest(BaseModel):
     student_id: str
     max_records: int
 
+@app.get("/healthz")
+def health_check():
+    return {"status": "ok"}
+
 @app.post("/recommendations")
 async def get_live_recommendation(data: RecommendationRequest):
     target_student_id = data.student_id
