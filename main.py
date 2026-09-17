@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy import create_engine, text
 
@@ -8,6 +9,16 @@ from sqlalchemy import create_engine, text
 load_dotenv()
 
 app = FastAPI()
+
+# Whitelist your frontend origins explicitly, now they make browser-based requests to "warmup" endpoint which requires them to support CORS
+allowed_origins = os.getenv("ALLOWED_CORS_ORIGINS")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 if DATABASE_URL == None:
@@ -23,7 +34,7 @@ class RecommendationRequest(BaseModel):
     student_id: str
     max_records: int
 
-@app.get("/healthz")
+@app.get("/warmup")
 def health_check():
     return {"status": "ok"}
 
