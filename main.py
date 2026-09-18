@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy import create_engine, text
+import asyncio
 
 # Load variables from .env into os.environ
 load_dotenv()
@@ -35,7 +36,8 @@ class RecommendationRequest(BaseModel):
     max_records: int
 
 @app.get("/warmup")
-def health_check():
+async def health_check():
+    #await asyncio.sleep(5)
     return {"status": "ok"}
 
 @app.post("/recommendations")
