@@ -4,7 +4,7 @@ This repository contains server-side data analysis services for the University M
 
 > [!NOTE]
 >
-> For an introduction and overview of the University Management System project, please first visit my **[Profile Page](https://github.com/xxxx)**
+> For an introduction and overview of the University Management System project, please first visit my **[Profile Page](https://github.com/dj6833)**
 
 ## 🛠️ Tech Stack
 
