@@ -9,6 +9,14 @@ import asyncio
 # Load variables from .env into os.environ
 load_dotenv()
 
+# 1. Check if running in your production environment
+if os.getenv("NODE_ENV") == "production" or os.getenv("RENDER") == "true" or 1==1:
+    print("Simulating a 45-second cold start delay...", flush=True)
+    # Use a blocking sleep or a top-level asyncio task to delay startup
+    import time
+    time.sleep(45) 
+    print("Delay finished. Booting FastAPI server up!", flush=True)
+
 app = FastAPI()
 
 # Whitelist your frontend origins explicitly, now they make browser-based requests to "warmup" endpoint which requires them to support CORS
